@@ -12,15 +12,15 @@ all: $(lib)
 #DEPFLAGS = -MMD -MF $(@:.o=.d)
 
 libuthread.a: $(objs)
-	##@echo "CC $@"
+	#@echo "CC $@"
 	$(CC2) -o $@ $^
 
 %.o: %.c
-	##@echo "CC $@"
+	#@echo "CC $@"
 	$(CC) $(CFLAGS) -c -o $@ $< # $(DEPFLAGS)
 
 clean:
-	##@echo "clean"
+	#@echo "clean"
 	rm -f $(targets) $(objs) # $(deps)
 
 

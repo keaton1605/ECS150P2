@@ -3,39 +3,77 @@
 #include <string.h>
 
 #include "queue.h"
-
-struct queue {
-	/* TODO Phase 1 */
+/*
+typedef struct queue_Node {
 	void* data;
 	int numInQueue;
-	struct queue* next;
-	struct queue* prev;
+	queue_Node next;
+	queue_Node prev;
+};*/
+
+struct queue {
+	void* data;
+	int numInQueue;
+	queue_t next;
+	queue_t prev;
 };
+
+//queue_t head = NULL;
 
 queue_t queue_create(void)
 {
-	struct queue* newQueue = (struct queue*)malloc(sizeof(struct queue));
-	newQueue->data = NULL;
-	newQueue->numInQueue = 9;
-	newQueue->next = NULL;
-	newQueue->prev = NULL;
-	return newQueue;
+	queue_t head = (queue_t)malloc(sizeof(struct queue));
+	head->numInQueue = 0;
+
+	return head;
 }
 
-/*int queue_destroy(queue_t queue)
+int queue_destroy(queue_t queue)
 {
-	
+	if (queue == NULL || queue->next != NULL)
+		return -1;
+	else
+		free(queue);
+	return 0;
 }
 
 int queue_enqueue(queue_t queue, void *data)
 {
-	
+	if (queue == NULL || data == NULL)
+		return -1;
+
+	queue_t head = (queue_t)malloc(sizeof(struct queue));
+	head->data = data;
+
+	if (queue->next != NULL)
+	{
+		head->next = queue;
+		queue->prev = head;
+	}
+
+	else
+		queue = head;
+
+	return 0;
 }
 
 int queue_dequeue(queue_t queue, void **data)
 {
-	
-}
+	if (queue == NULL)
+		return -1;
+
+	queue_t current = queue;
+
+	while (current->next != NULL)
+		current = current->next;
+
+	current->prev->next = NULL;
+
+	*data = current->data;
+	queue_destroy(current);
+
+	return 0;
+}/*
 
 int queue_delete(queue_t queue, void *data)
 {
