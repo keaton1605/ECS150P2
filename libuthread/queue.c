@@ -6,40 +6,49 @@
 
 struct queue {
 	/* TODO Phase 1 */
+	void* data;
+	int numInQueue;
+	struct queue* next;
+	struct queue* prev;
 };
 
 queue_t queue_create(void)
 {
-	/* TODO Phase 1 */
+	struct queue* newQueue = (struct queue*)malloc(sizeof(struct queue));
+	newQueue->data = NULL;
+	newQueue->numInQueue = 9;
+	newQueue->next = NULL;
+	newQueue->prev = NULL;
+	return newQueue;
 }
 
-int queue_destroy(queue_t queue)
+/*int queue_destroy(queue_t queue)
 {
-	/* TODO Phase 1 */
+	
 }
 
 int queue_enqueue(queue_t queue, void *data)
 {
-	/* TODO Phase 1 */
+	
 }
 
 int queue_dequeue(queue_t queue, void **data)
 {
-	/* TODO Phase 1 */
+	
 }
 
 int queue_delete(queue_t queue, void *data)
 {
-	/* TODO Phase 1 */
+	
 }
 
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
-	/* TODO Phase 1 */
+	
 }
 
 int queue_length(queue_t queue)
 {
-	/* TODO Phase 1 */
-}
+	
+}*/
 
