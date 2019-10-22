@@ -67,7 +67,7 @@ int queue_enqueue(queue_t queue, void *data)
 
 int queue_dequeue(queue_t queue, void **data)
 {
-	if (queue == NULL)
+	if (queue == NULL || data == NULL || queue->head == NULL)
 		return -1;
 
 	*data = queue->tail->data;
@@ -93,17 +93,52 @@ int queue_dequeue(queue_t queue, void **data)
 
 int queue_delete(queue_t queue, void *data)
 {
+	int i = 0;
+	struct queue_Node* current = queue->tail;
+	
+	for (i = queue->numInQueue; i > 0; i--)
+	{
+		if (current->data == data)
+		{	
+			if (current == queue->tail)
+				queue->tail = queue->tail->prev;
+			else if (current == queue->head)
+				queue->head = queue->head->next;
+			else
+			{
+				current->prev->next = current->next;
+				current->next->prev = current->prev;
+			}
 
-	return 0;
-}/*
+			free(current);
+			queue->numInQueue -= 1;
+
+			return 0;
+		}
+		current = current->prev;
+	}
+	free(current);	
+	return -1;
+}
 
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
+	int i = 0;
+	struct queue_Node* current = queue->tail;
 	
-}*/
+	for (i = queue->numInQueue; i > 0; i--)
+	{
+		
+		current = current->prev;
+	}
+	return 0;
+}
 
 int queue_length(queue_t queue)
 {
+	if (queue == NULL)
+		return -1;
+
 	return queue->numInQueue;
 }
 
