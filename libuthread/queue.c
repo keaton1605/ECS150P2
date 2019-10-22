@@ -60,8 +60,6 @@ int queue_enqueue(queue_t queue, void *data)
 	}
 	queue->numInQueue += 1;
 
-	//printf("%d\n", queue->numInQueue);
-	//printf("%d\n", queue->head->data);
 	return 0;
 }
 
@@ -123,12 +121,17 @@ int queue_delete(queue_t queue, void *data)
 
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
-	int i = 0;
+	if (queue == NULL || func == NULL)
+		return -1;
+
 	struct queue_Node* current = queue->tail;
-	
-	for (i = queue->numInQueue; i > 0; i--)
+	//printf("Current data: %d\n", *(int*)current->data);
+
+	while (current != NULL)
 	{
-		
+		if (func(current->data, arg) == 1)
+			*data = current->data;
+
 		current = current->prev;
 	}
 	return 0;
