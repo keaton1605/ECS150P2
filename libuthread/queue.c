@@ -1,36 +1,38 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "queue.h"
-/*
-typedef struct queue_Node {
+
+struct queue_Node {
 	void* data;
-	int numInQueue;
-	queue_Node next;
-	queue_Node prev;
-};*/
+	struct queue_Node* next;
+	struct queue_Node* prev;
+};
 
 struct queue {
-	void* data;
 	int numInQueue;
-	queue_t next;
-	queue_t prev;
+	struct queue_Node* head;
+	struct queue_Node* tail;
 };
 
 //queue_t head = NULL;
 
 queue_t queue_create(void)
 {
-	queue_t head = (queue_t)malloc(sizeof(struct queue));
-	head->numInQueue = 0;
-
-	return head;
+	queue_t newQueue = (queue_t)malloc(sizeof(struct queue));
+	newQueue->numInQueue = 0;
+	newQueue->head = NULL;
+	newQueue->tail = NULL;
+	return newQueue;
 }
 
 int queue_destroy(queue_t queue)
 {
-	if (queue == NULL || queue->next != NULL)
+	if (queue == NULL)
+		return -1;
+	else if (queue->head != NULL && queue->head->next != NULL)
 		return -1;
 	else
 		free(queue);
@@ -42,18 +44,24 @@ int queue_enqueue(queue_t queue, void *data)
 	if (queue == NULL || data == NULL)
 		return -1;
 
-	queue_t head = (queue_t)malloc(sizeof(struct queue));
-	head->data = data;
+	struct queue_Node* newHead = (struct queue_Node*)malloc(sizeof(struct queue_Node));
+	newHead->data = data;
 
-	if (queue->next != NULL)
+	if (queue->head == NULL)
 	{
-		head->next = queue;
-		queue->prev = head;
+		queue->head = newHead;
+		queue->tail = newHead;
 	}
-
 	else
-		queue = head;
+	{
+		newHead->next = queue->head;
+		queue->head->prev = newHead;
+		queue->head = newHead;
+	}
+	queue->numInQueue += 1;
 
+	//printf("%d\n", queue->numInQueue);
+	//printf("%d\n", queue->head->data);
 	return 0;
 }
 
@@ -62,31 +70,40 @@ int queue_dequeue(queue_t queue, void **data)
 	if (queue == NULL)
 		return -1;
 
-	queue_t current = queue;
+	*data = queue->tail->data;
 
-	while (current->next != NULL)
-		current = current->next;
+	if (queue->tail == queue->head)
+	{
+		free(queue->tail);
+		free(queue->head);
+	}
+	else
+	{
+		struct queue_Node* toDelete = queue->tail;
+		queue->tail->prev->next = NULL;
+		queue->tail = queue->tail->prev;
+		toDelete->prev = NULL;
+		free(toDelete);
+	}
+	queue->numInQueue -= 1;
+	//printf("%d\n", queue->numInQueue);
 
-	current->prev->next = NULL;
+	return 0;
+}
 
-	*data = current->data;
-	queue_destroy(current);
+int queue_delete(queue_t queue, void *data)
+{
 
 	return 0;
 }/*
 
-int queue_delete(queue_t queue, void *data)
-{
-	
-}
-
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
 	
-}
+}*/
 
 int queue_length(queue_t queue)
 {
-	
-}*/
+	return queue->numInQueue;
+}
 
