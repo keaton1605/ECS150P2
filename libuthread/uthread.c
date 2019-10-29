@@ -47,11 +47,11 @@ int tidFindFunc(void *data, void *arg)
 	int tid = (int)(long)arg;
 
 	if(temp->TID == tid) 
-	{
 		return 1;
-	}
+
 	return 0;
 }
+
 
 int tidFind(queue_t newQ, void* data, int tid)
 {
@@ -59,6 +59,36 @@ int tidFind(queue_t newQ, void* data, int tid)
 	//printf("%d\n", retval);
 	return retval;
 }
+
+
+int jointidFindFunc(void *data, void *arg)
+{
+	struct thread* temp = (struct thread*)data;
+	int tid = (int)(long)arg;
+
+	if(temp->joinTID == tid)
+		return 1;
+
+	return 0;
+}
+
+void unBlock()
+{
+	struct thread* blocked;
+	void *ptr = NULL;
+
+	/* Checks blocked queue and reinserts into ready queue*/
+	if (queue_iterate(BLOCKED_q, jointidFindFunc, (void*)(long)Current->TID, &ptr) == 1)
+	{
+		blocked = (struct thread*)ptr;
+		blocked->joinTID = 0;
+		queue_delete(BLOCKED_q, &blocked);
+		queue_enqueue(READY_q, blocked);
+	}
+	return;
+}
+
+
 
 void uthread_yield(void)
 {
@@ -137,11 +167,10 @@ void uthread_exit(int retval)
 	Current->state = ZOMBIE;
 	queue_enqueue(ZOMB_q, Current);
 
-	/* Put next thread in Current */
-	if (queue_length(READY_q) != 0)
-		queue_dequeue(READY_q, (void**)&prev);
-	else
-		prev = Main;
+	/* Put next thread in Current, unBlock any threads blocked by thread about to switch to zombie */
+	queue_dequeue(READY_q, (void**)&prev);
+
+	unBlock();
 
 	Current = prev;
 	uthread_ctx_switch(temp->context, Current->context);
@@ -149,10 +178,11 @@ void uthread_exit(int retval)
 
 int uthread_join(uthread_t tid, int *retval)
 {
-	// TODO Phase 3 
-
 	struct thread* Join;
 	struct thread* deadThread;
+
+	if (BLOCKED_q == NULL)
+		BLOCKED_q = queue_create();
 
 	/* Check if tid is valid */
 	if (tid == 0 || Current->TID == tid)	

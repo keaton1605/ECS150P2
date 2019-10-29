@@ -20,6 +20,7 @@ struct itimerval Timer;
 
 static void sigAlarmHandler(int sigNum)
 {
+	/* Forces Current thread to yield */
 	uthread_yield();
 }
 
