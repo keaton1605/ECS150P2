@@ -17,7 +17,6 @@ struct queue {
 	struct queue_Node* tail;
 };
 
-//queue_t head = NULL;
 
 queue_t queue_create(void)
 {
@@ -35,7 +34,11 @@ int queue_destroy(queue_t queue)
 	else if (queue->head != NULL && queue->head->next != NULL)
 		return -1;
 	else
+	{
+		free(queue->head);
+		free(queue->tail);
 		free(queue);
+	}
 	return 0;
 }
 
@@ -59,7 +62,7 @@ int queue_enqueue(queue_t queue, void *data)
 		queue->head = newHead;
 	}
 	queue->numInQueue += 1;
-
+	
 	return 0;
 }
 
@@ -72,8 +75,8 @@ int queue_dequeue(queue_t queue, void **data)
 
 	if (queue->tail == queue->head)
 	{
-		free(queue->tail);
-		free(queue->head);
+		queue->tail = NULL;
+		queue->head = NULL;
 	}
 	else
 	{
@@ -84,7 +87,6 @@ int queue_dequeue(queue_t queue, void **data)
 		free(toDelete);
 	}
 	queue->numInQueue -= 1;
-	//printf("%d\n", queue->numInQueue);
 
 	return 0;
 }
@@ -115,7 +117,7 @@ int queue_delete(queue_t queue, void *data)
 		}
 		current = current->prev;
 	}
-	free(current);	
+	free(current);
 	return -1;
 }
 
@@ -123,15 +125,16 @@ int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
 {
 	if (queue == NULL || func == NULL)
 		return -1;
-
+	
 	struct queue_Node* current = queue->tail;
-	//printf("Current data: %d\n", *(int*)current->data);
 
 	while (current != NULL)
 	{
 		if (func(current->data, arg) == 1)
+		{
 			*data = current->data;
-
+			return 1;
+		}
 		current = current->prev;
 	}
 	return 0;
@@ -144,4 +147,3 @@ int queue_length(queue_t queue)
 
 	return queue->numInQueue;
 }
-
