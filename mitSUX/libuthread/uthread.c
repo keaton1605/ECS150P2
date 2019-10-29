@@ -35,7 +35,7 @@ struct thread
 {
 	uthread_t TID;
 	uthread_t joinTID;
-	void** stack;
+	void* stack;
 	states state;
 	ucontext_t *context;
 	int retval;
@@ -74,6 +74,7 @@ void uthread_yield(void)
 	queue_enqueue(q, (void**)Current);
 
 	/* Dequeue next thread */
+	//printf("%d\n", queue_length(q));
 	queue_dequeue(q, (void**)&prev);	
 
 	/* Change previous thread to Current */
@@ -100,20 +101,19 @@ int uthread_create(uthread_func_t func, void *arg)
 		struct thread* newThread1 = (struct thread*)malloc(sizeof(struct thread));
 		newThread1->TID = numThreads;
 		newThread1->stack = uthread_ctx_alloc_stack();
-		newThread1->state = 0;
+		newThread1->state = READY;
 		newThread1->context = &ctx;
 		//printf("%d\n", *(int*)&newThread->stack);
 		//uthread_ctx_init(&newThread1->context, &newThread1->stack, NULL, NULL);
 		Main = newThread1;
 		Current = newThread1;
 		q = queue_create();
-		//queue_enqueue(q, newThread1);
 	}
 	
 	newThread->TID = ++numThreads;
 	//printf("TID: %d\n", newThread->TID);
 	newThread->stack = uthread_ctx_alloc_stack();
-	newThread->state = 0;
+	newThread->state = READY;
 	newThread->context = malloc(sizeof(uthread_ctx_t));
 	//func(arg);
 	uthread_ctx_init(newThread->context, newThread->stack, func, arg);
@@ -163,24 +163,31 @@ int uthread_join(uthread_t tid, int *retval)
 	// TODO Phase 3 
 
 	struct thread* Join;
+	struct thread* deadThread;
 
-	struct thread* Test = (struct thread*)malloc(sizeof(struct thread));
-	Test->TID = 43;
-	queue_enqueue(ZOMB_q, Test);
-
-
+	/* Check if tid is valid */
 	if (tid == 0 || Current->TID == tid)	
 		return -1;
-
 	
-	
-	/* TO DO (if T2 already dead) 	*/
-
+	/* Check if TID is in Zombie state */
 	if (tidFind(ZOMB_q, &Join, tid) == 1)
-		printf("YES\n");
+	{
+		queue_dequeue(ZOMB_q, (void**)&deadThread);
+		uthread_ctx_destroy_stack(deadThread->stack);
+		free(deadThread);
+	}
+	
+	/* If not in zombie state, block current thread and switch context */
 	else
-		printf("NO\n");
+	{
+		Current->state = BLOCKED;
+		//queue_enqueue(BLOCKED_q, Current);
 
+		Join = Current;
+		queue_dequeue(q, (void**)&deadThread);
+		Current = deadThread;
+		uthread_ctx_switch(Join->context, Current->context);
+	}
 
 	//Dead_Collect();
 	
