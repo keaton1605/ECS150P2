@@ -77,19 +77,19 @@ void test_queue_simple(void)
 	//printf("%d\n",&data);
 	q = queue_create();
 	queue_enqueue(q, &data);
-	queue_dequeue(q, (void**)&ptr);
-	queue_enqueue(q, &data2);
-	queue_enqueue(q, &data3);
+	//queue_dequeue(q, (void**)&ptr);
+	//queue_enqueue(q, &data2);
+	//queue_enqueue(q, &data3);
 	//queue_enqueue(q, &data4);
-	//queue_delete(q, &data3);
+	queue_delete(q, &data);
 	//queue_delete(q, &data2);
 	//queue_delete(q, &data3);
-	queue_dequeue(q, (void**)&ptr2);
-	queue_dequeue(q, (void**)&ptr4);
-	printf("%d %d\n",*(int*)ptr,*(int*)&data);
-	printf("%d %d\n",*(int*)ptr2,*(int*)&data2);
-	printf("%d %d\n",*(int*)ptr4,*(int*)&data3);
-	assert(ptr == &data);
+	//queue_dequeue(q, (void**)&ptr2);
+	//queue_dequeue(q, (void**)&ptr4);
+	//printf("%d %d\n",*(int*)ptr,*(int*)&data);
+	//printf("%d %d\n",*(int*)ptr2,*(int*)&data2);
+	//printf("%d %d\n",*(int*)ptr4,*(int*)&data3);
+	//assert(ptr == &data);
 }
 
 
