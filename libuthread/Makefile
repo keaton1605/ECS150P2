@@ -3,7 +3,11 @@ lib := libuthread.a
 objs := queue.o uthread.o context.o preempt.o
 CC   := gcc
 CC2  := ar rcs
-CFLAGS  := -g -Wall#-Werror 
+CFLAGS  := -Wall -Werror
+
+ifneq ($(V),1)
+Q = @
+endif
 
 all: $(lib)
 
@@ -13,15 +17,15 @@ DEPFLAGS = -MMD -MF $(@:.o=.d)
 
 libuthread.a: $(objs)
 	@echo "CC $@"
-	$(Q) $(CC2) -o $@ $^
+	$(Q)$(CC2) -o $@ $^
 
 %.o: %.c
 	@echo "CC $@"
-	$(Q) $(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
+	$(Q)$(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
 
 clean:
 	@echo "clean"
-	rm -f $(targets) $(objs) $(deps)
+	$(Q)rm -f $(targets) $(objs) $(deps)
 
 
 

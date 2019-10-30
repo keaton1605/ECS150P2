@@ -18,16 +18,18 @@ struct thread* Current;
 int numThreads = 0;
 static ucontext_t ctx;
 
+// Queues for each state
 queue_t READY_q;
 queue_t BLOCKED_q;
 queue_t ZOMB_q;
+
 
 typedef enum {
 	READY,
 	RUNNING,
 	BLOCKED,
 	ZOMBIE
-} states;
+} states; // Enum of states
 
 
 struct thread
@@ -38,7 +40,7 @@ struct thread
 	states state;
 	ucontext_t *context;
 	int retval;
-};
+}; // Thread Control Block
 
 int tidFindFunc(void *data, void *arg)
 {
@@ -56,7 +58,7 @@ int tidFind(queue_t newQ, void* data, int tid)
 {
 	int retval = queue_iterate(newQ, tidFindFunc, (void*)(long)tid, data);
 	return retval;
-}
+} // Finds specific tid given a specific queue
 
 
 int jointidFindFunc(void *data, void *arg)
@@ -109,8 +111,8 @@ void uthread_yield(void)
 	Current = prev;
 	Current->state = RUNNING;
 
-	preempt_enable();		
-
+	preempt_enable();
+		
 	uthread_ctx_switch(temp->context, Current->context);
 }
 
@@ -118,7 +120,7 @@ void uthread_yield(void)
 uthread_t uthread_self(void)
 {
 	return Current->TID;
-}
+} // Returns Current threads TID
 
 
 int uthread_create(uthread_func_t func, void *arg)

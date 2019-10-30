@@ -29,18 +29,19 @@ static void sigAlarmHandler(int sigNum)
 void preempt_disable(void)
 {
 	sigprocmask(SIG_BLOCK, &signalSet, NULL);
-}
+} // Blocks alarm signal
 
 void preempt_enable(void)
 {
 	sigprocmask(SIG_UNBLOCK, &signalSet, NULL);
-}
+} // Renables alarm signal
 
 void preempt_start(void)
 {
 	struct sigaction Action;
 	memset(&Action, 0, sizeof Action);
 
+	/* Empties initially and adds alarm signal to signalSet */
 	sigemptyset(&signalSet);
 	sigaddset(&signalSet, SIGVTALRM);
 
