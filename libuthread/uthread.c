@@ -110,7 +110,7 @@ void uthread_yield(void)
 	Current->state = RUNNING;
 
 	preempt_enable();		
-	
+
 	uthread_ctx_switch(temp->context, Current->context);
 }
 
@@ -139,7 +139,7 @@ int uthread_create(uthread_func_t func, void *arg)
 		READY_q = queue_create();
 		preempt_start();
 	}
-	
+
 	preempt_disable();
 
 	/* Initialize a child thread */		

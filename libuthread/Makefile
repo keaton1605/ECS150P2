@@ -12,15 +12,15 @@ deps := $(patsubst %.o,%.d,$(objs))
 DEPFLAGS = -MMD -MF $(@:.o=.d)
 
 libuthread.a: $(objs)
-	#@echo "CC $@"
-	$(CC2) -o $@ $^
+	@echo "CC $@"
+	$(Q) $(CC2) -o $@ $^
 
 %.o: %.c
-	#@echo "CC $@"
-	$(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
+	@echo "CC $@"
+	$(Q) $(CC) $(CFLAGS) -c -o $@ $< $(DEPFLAGS)
 
 clean:
-	#@echo "clean"
+	@echo "clean"
 	rm -f $(targets) $(objs) $(deps)
 
 

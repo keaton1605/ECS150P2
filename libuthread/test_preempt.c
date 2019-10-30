@@ -1,15 +1,7 @@
-/*
- * Thread preemption
- *
- *
- * thread1
- * thread2
- * thread3
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include "preempt.h"
 #include "queue.h"
@@ -23,25 +15,29 @@ int hello(void* arg)
 	return 0;
 }
 
-void first_test(void)
-{
-	int retval = -1;
-	int tid = uthread_create(hello,NULL);
-	uthread_join(tid, &retval);
-	assert(retval == 0);
-}
-
-int dontWait(void* arg)
+int dontWaitMore(void* arg)
 {
 	printf("printing before 'wait' complete.\n");
 	preemptDone = 1;
 	return 0;
 }
 
+
+int dontWait(void* arg)
+{
+	int tid = uthread_create(dontWaitMore, NULL);
+	while (preemptDone != 1) {};
+	printf("printing after 'dontWaitMore' complete.\n");
+	preemptDone++;
+	uthread_join(tid, NULL);
+	return 0;
+}
+
+
 int wait(void* arg)
 {
 	int tid = uthread_create(dontWait, NULL);
-	while (preemptDone == 0) {};
+	while (preemptDone != 2) {};
 	printf("printing after 'dontWait' complete.\n");
 	uthread_join(tid, NULL);
 	return 0;
@@ -55,8 +51,6 @@ void preempt_test(void)
 
 int main(void)
 {
-	//first_test();
 	preempt_test();
-	//uthread_join(uthread_create(thread1, NULL), NULL);
 	return 0;
 }

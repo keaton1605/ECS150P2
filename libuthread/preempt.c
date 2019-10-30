@@ -15,27 +15,24 @@
  * 100Hz is 100 times per second
  */
 #define HZ 100
+#define sec 1000000
 
 sigset_t signalSet;
 struct itimerval Timer;
 
 static void sigAlarmHandler(int sigNum)
 {
-	//printf("Handling signal\n");
-	//exit(0);
 	/* Forces Current thread to yield */
 	uthread_yield();
 }
 
 void preempt_disable(void)
 {
-	//sigaddset(&Action.sa_mask, SIGVTALRM);
 	sigprocmask(SIG_BLOCK, &signalSet, NULL);
 }
 
 void preempt_enable(void)
 {
-	//sigdelset(&Action.sa_mask, SIGVTALRM);
 	sigprocmask(SIG_UNBLOCK, &signalSet, NULL);
 }
 
@@ -56,8 +53,8 @@ void preempt_start(void)
 	/* Sets first Timer period and successive timer periods to 10000 microseconds (100 HZ) */
 	Timer.it_value.tv_sec = 0;
 	Timer.it_interval.tv_sec = 0;
-	Timer.it_value.tv_usec = 1000000 / HZ;
-	Timer.it_value.tv_usec = 1000000 / HZ;
+	Timer.it_value.tv_usec = sec / HZ;
+	Timer.it_interval.tv_usec = sec / HZ;
 	setitimer(ITIMER_VIRTUAL, &Timer, NULL);
 }
 
