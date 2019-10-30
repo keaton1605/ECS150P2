@@ -1,178 +1,162 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "queue.h"
 
-//Helper functions
-static int isEmpty(queue_t queue);
-
-typedef struct node {
- void *data;
- struct node *next;
-} node;
+struct queue_Node {
+	void* data;
+	struct queue_Node* next;
+	struct queue_Node* prev;
+}; // A struct of nodes for each item in the queue
 
 struct queue {
- struct node *head;
- struct node *tail;
- int length;
-};
+	int numInQueue;
+	struct queue_Node* head;
+	struct queue_Node* tail;
+}; // A struct containing pointers to the first and last members of the queue
+
 
 queue_t queue_create(void)
 {
- queue_t queue;
- // Allocate a queue
- queue = (queue_t) malloc(sizeof(struct queue));
- // Set length to 0
- queue->length = 0;
- // Initialize head and tail
- queue->head = (node*) malloc(sizeof(node));
- queue->head->data = NULL;
- queue->head->next = NULL;
- queue->tail = queue->head;
- //Return the queue
- return queue;
-}
+	queue_t newQueue = (queue_t)malloc(sizeof(struct queue));
+	newQueue->numInQueue = 0;
+	newQueue->head = NULL;
+	newQueue->tail = NULL;
+	return newQueue;
+} // Allocates a new, empty queue
 
 int queue_destroy(queue_t queue)
 {
- if (queue == NULL) { // If queue is NULL
- return -1;
- } else if ( queue->length != 0) { // If queue is not empty
- return -1;
- } else {
- free(queue->head);
- free(queue);
- }
-
- return 0;
-}
+	if (queue == NULL)	// Error check
+		return -1;
+	else if (queue->head != NULL && queue->head->next != NULL)	// Error check
+		return -1;
+	else
+	{
+		free(queue->head);
+		free(queue->tail);
+		free(queue);
+	}
+	return 0;
+} // Deallocates an empty queue
 
 int queue_enqueue(queue_t queue, void *data)
-{ // check if queue or data is null
- if (queue == NULL || data == NULL) {
- return -1;
- }
- // don't make a new node if length is 0
- if (queue->length == 0) {
-	queue->head->data = data;
- } else {
- queue->tail->next = (node*) malloc(sizeof(node));
- // check memory allocation error
- if (queue->tail->next == NULL){
- return -1;
- }
- // Setup new node with data
- queue->tail = queue->tail->next;
- queue->tail->next = NULL;
- queue->tail->data = data;
- }
- 
- // Increment length
- (queue->length)++;
- return 0; 
-}
+{
+	if (queue == NULL || data == NULL)	// Error check
+		return -1;
+
+	struct queue_Node* newHead = (struct queue_Node*)malloc(sizeof(struct queue_Node));
+	newHead->data = data;
+
+	/* First item in queue */
+	if (queue->head == NULL)
+	{
+		queue->head = newHead;
+		queue->tail = newHead;
+	} 
+
+	/* Queue is not empty, moves head pointer */
+	else
+	{
+		newHead->next = queue->head;
+		queue->head->prev = newHead;
+		queue->head = newHead;
+	} 
+
+	queue->numInQueue += 1;
+	
+	return 0;
+} // Inserts a new item at the beginning of queue
 
 int queue_dequeue(queue_t queue, void **data)
-{ // check if queue or data is null
- if (queue == NULL || data == NULL) {
- return -1;
- }
- // Check if queue is empty
- if (queue->length == 0) {
- return -1;
- }
- // Set data to oldest item
- *data = queue->head->data;
- // Decrement length
- (queue->length)--;
- // Special case if queue is now empty
- if (queue->length == 0) {
- queue->head->data = NULL;
- } else { // Otherwise if items still in queue
- // Make a copy of the old head pointer
- node* oldHead = queue->head;
- // Set head to next in queue
- queue->head = queue->head->next;
- // free the old head node
- free(oldHead);
- }
- 
- return 0; 
-}
+{
+	if (queue == NULL || data == NULL || queue->head == NULL)	// Error check
+		return -1;
+
+	*data = queue->tail->data;
+
+	/* Removes single item in queue */
+	if (queue->tail == queue->head)
+	{
+		queue->tail = NULL;
+		queue->head = NULL;
+	} 
+
+	/* Multiple items in queue, moves tail pointer */
+	else
+	{
+		struct queue_Node* toDelete = queue->tail;
+		queue->tail->prev->next = NULL;
+		queue->tail = queue->tail->prev;
+		toDelete->prev = NULL;
+		free(toDelete);
+	}
+
+	queue->numInQueue -= 1;
+
+	return 0;
+} // Removes an item from end of queue
 
 int queue_delete(queue_t queue, void *data)
-{ // check if queue or data is null
- if (queue == NULL || data == NULL) {
- return -1;
- }
- // See if item is first in queue
- node *currentNode = queue->head; 
- if (currentNode->data == data) {
- void *ptr;
- queue_dequeue(queue, &ptr);
- } else { // Iterate until Item is found
- while (currentNode != NULL) {
- if (currentNode->next != NULL && currentNode->next->data == data) {
- node* deleteNode = currentNode->next;
- currentNode->next = currentNode->next->next;
- (queue->length)--;
- free(deleteNode);
- break;
- }
- currentNode = currentNode->next;
- }
- // If this point is reached, data does not exist
- return -1;
- }
- return 0;
-}
+{
+	int i = 0;
+	struct queue_Node* current = queue->tail;
+	
+	/* Iterates through queue until data is found or head is reached */
+	for (i = queue->numInQueue; i > 0; i--)
+	{
+		if (current->data == data)
+		{	
+			if (current == queue->tail)			// Edge cases: 
+				queue->tail = queue->tail->prev;	// Data is at head or tail.
+			else if (current == queue->head)		// Delete is very similar to 
+				queue->head = queue->head->next;	// Enqueue/Dequeue
+
+			/* Make nodes before and after point to each other */
+			else
+			{
+				current->prev->next = current->next;
+				current->next->prev = current->prev;
+			} 
+
+			free(current);
+			queue->numInQueue -= 1;
+
+			return 0;
+		}
+		current = current->prev;
+
+	}
+
+	free(current);
+	return -1;	// Error check
+} // Removes specific item from queue
 
 int queue_iterate(queue_t queue, queue_func_t func, void *arg, void **data)
-{ //Check if queue or func are NULL
- if(queue == NULL || func == NULL) {
- return -1;
- }
- //Return if the queue is empty
- if(isEmpty(queue)) {
- return 0;
- }
- //Iterate through queue
- node *current = queue->head; //Start at the head
+{
+	if (queue == NULL || func == NULL)	// Error check
+		return -1;
+	
+	struct queue_Node* current = queue->tail;
 
- while(current) {
- //Call the function. If 1, stop.
- if((*func)(current->data, arg) == 1) {
- //If data is not null, it receives data item where iteration stops
- if(data != NULL) {
- *data = current->data;
- return 1;
- }
- } 
- //Move to next node
- current = current->next;
- }
-
- return 0; 
-}
+	while (current != NULL)
+	{
+		if (func(current->data, arg) == 1)
+		{
+			*data = current->data;
+			return 1;
+		}
+		current = current->prev;
+	}
+	return 0;
+} // Performs function func on each node in queue
 
 int queue_length(queue_t queue)
 {
-	if( queue == NULL){
- return -1;
- }
- return queue->length; 
-}
+	if (queue == NULL)	// Error check
+		return -1;
 
-/* Helper functions */
-
-//Check if queue is empty
-static int isEmpty(queue_t queue)
-{
- if(queue->length == 0)
- {
- return 1;
- }
-
- return 0;
-}
+	return queue->numInQueue;
+} // Returns length of queue

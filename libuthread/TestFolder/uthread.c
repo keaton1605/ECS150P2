@@ -14,12 +14,11 @@
 // Global Variables
 struct thread* Main;
 struct thread* Current;
-//struct thread* PrevT;
 
 int numThreads = 0;
 static ucontext_t ctx;
 
-queue_t q; // READY queue
+queue_t READY_q;
 queue_t BLOCKED_q;
 queue_t ZOMB_q;
 
@@ -47,42 +46,71 @@ int tidFindFunc(void *data, void *arg)
 	int tid = (int)(long)arg;
 
 	if(temp->TID == tid) 
-	{
 		return 1;
-	}
-	return 0;
-}
 
-int tidFind(queue_t q, void* data, int tid)
+	return 0;
+} // Find specific TID's
+
+
+int tidFind(queue_t newQ, void* data, int tid)
 {
-	int retval = queue_iterate(q, tidFindFunc, (void*)(long)tid, data);
-	//printf("%d\n", retval);
+	int retval = queue_iterate(newQ, tidFindFunc, (void*)(long)tid, data);
 	return retval;
 }
 
+
+int jointidFindFunc(void *data, void *arg)
+{
+	struct thread* temp = (struct thread*)data;
+	int tid = (int)(long)arg;
+
+	if(temp->joinTID == tid)
+		return 1;
+
+	return 0;
+} // Find specific TID's for joined threads
+
+void unBlock()
+{
+	struct thread* blocked;
+	void *ptr = NULL;
+
+	/* Checks blocked queue and reinserts into ready queue*/
+	if (queue_iterate(BLOCKED_q, jointidFindFunc, (void*)(long)Current->TID, &ptr) == 1)
+	{
+		blocked = (struct thread*)ptr;
+		blocked->joinTID = 0;
+		queue_delete(BLOCKED_q, &blocked);
+		queue_enqueue(READY_q, blocked);
+	}
+	return;
+} // Unblock parent after child exits
+
+
 void uthread_yield(void)
 {
-	if (q == NULL)
+	if (READY_q == NULL)
 		return;
-
+	
 	struct thread* prev;
-	struct thread* prev2;
 	struct thread* temp;
+
+	preempt_disable();	
 
 	/* Change current state to ready and enqueue */
 	Current->state = READY;
 	temp = Current;
-	queue_enqueue(q, (void**)Current);
+	queue_enqueue(READY_q, (void**)Current);
 
 	/* Dequeue next thread */
-	//printf("%d\n", queue_length(q));
-	queue_dequeue(q, (void**)&prev);	
-	//queue_dequeue(q, (void**)&prev2);
+	queue_dequeue(READY_q, (void**)&prev);	
 
 	/* Change previous thread to Current */
 	Current = prev;
 	Current->state = RUNNING;
-	//printf("%d %d %d\n", temp->TID, Current->TID, prev2->TID);
+
+	preempt_enable();		
+	
 	uthread_ctx_switch(temp->context, Current->context);
 }
 
@@ -95,32 +123,39 @@ uthread_t uthread_self(void)
 
 int uthread_create(uthread_func_t func, void *arg)
 {
-	
-	struct thread* newThread = (struct thread*)malloc(sizeof(struct thread));
-
+	/* Initialize the main thread */
 	if (numThreads == 0)
 	{
 		struct thread* newThread1 = (struct thread*)malloc(sizeof(struct thread));
+
 		newThread1->TID = numThreads;
+		newThread1->joinTID = -1;
 		newThread1->stack = NULL;
 		newThread1->state = READY;
 		newThread1->context = &ctx;
-		//printf("%d\n", *(int*)&newThread->stack);
-		//uthread_ctx_init(&newThread1->context, &newThread1->stack, NULL, NULL);
+
 		Main = newThread1;
 		Current = newThread1;
-		q = queue_create();
+		READY_q = queue_create();
+		preempt_start();
 	}
 	
+	preempt_disable();
+
+	/* Initialize a child thread */		
+	struct thread* newThread = (struct thread*)malloc(sizeof(struct thread));
+
 	newThread->TID = ++numThreads;
-	//printf("TID: %d\n", newThread->TID);
+	newThread->joinTID = -1;
 	newThread->stack = uthread_ctx_alloc_stack();
 	newThread->state = READY;
 	newThread->context = malloc(sizeof(uthread_ctx_t));
-	//func(arg);
+
 	uthread_ctx_init(newThread->context, newThread->stack, func, arg);
-	//Current = newThread;
-	queue_enqueue(q, newThread);
+	queue_enqueue(READY_q, newThread);
+
+	preempt_enable();
+
 	return newThread->TID;
 }
 
@@ -135,73 +170,82 @@ void uthread_exit(int retval)
 	struct thread* temp;
 
 	temp = Current;
+
+	preempt_disable();
 	
 	/* Put current thread in Zombie mode */
 	Current->retval = retval;
 	Current->state = ZOMBIE;
 	queue_enqueue(ZOMB_q, Current);
 
-	/* Put next thread in Current */
-	if (queue_length(q) != 0)
-		queue_dequeue(q, (void**)&prev);
+	/* Put next thread in Current, unBlock any threads blocked by thread about to switch to zombie */
+	if (queue_length(READY_q) != 0)
+		queue_dequeue(READY_q, (void**)&prev);
 	else
 		prev = Main;
+
+	unBlock();
+
 	Current = prev;
+
+	preempt_enable();
+	
 	uthread_ctx_switch(temp->context, Current->context);
 }
 
 int uthread_join(uthread_t tid, int *retval)
 {
-	/* PHASE 2 testing stuff
-	struct thread *ptr, *mainPtr;
-	printf("Queue_Length and NumThreads %d %d\n", queue_length(q), numThreads);
-
-	queue_dequeue(q, (void**)&mainPtr);
-	queue_dequeue(q, (void**)&ptr);
-
-	printf("mainTID ptrTID %d %d\n", mainPtr->TID, ptr->TID);
-
-	uthread_ctx_switch(mainPtr->context, ptr->context);
-	*/
-
-	// TODO Phase 3 
-
 	struct thread* Join;
 	struct thread* deadThread;
+	struct thread* tempRet;
+
+	if (BLOCKED_q == NULL)
+		BLOCKED_q = queue_create();
+
+	preempt_disable();
 
 	/* Check if tid is valid */
 	if (tid == 0 || Current->TID == tid)	
 		return -1;
 	
+	preempt_enable();
+
 	/* Check if TID is in Zombie state */
 	if (tidFind(ZOMB_q, &Join, tid) == 1)
 	{
 		queue_dequeue(ZOMB_q, (void**)&deadThread);
+		*retval = deadThread->retval;
 		uthread_ctx_destroy_stack(deadThread->stack);
 		free(deadThread);
 	}
 	
-	/* If not in zombie state, block current thread and switch context */
-	else
+	/* If not in zombie state, but still a thread, block current thread and switch context */
+	else if (tidFind(BLOCKED_q, &Join, tid) == 1 || tidFind(READY_q, &Join, tid) == 1)
 	{
+		preempt_disable();
+
 		Current->state = BLOCKED;
-		//queue_enqueue(BLOCKED_q, Current);
+		Current->joinTID = tid;
+		queue_enqueue(BLOCKED_q, Current);
+
+		tempRet = Join;
 
 		Join = Current;
-		queue_dequeue(q, (void**)&deadThread);
+		queue_dequeue(READY_q, (void**)&deadThread);
 		Current = deadThread;
+		Current->state = RUNNING;
+		
+		preempt_enable();
+
 		uthread_ctx_switch(Join->context, Current->context);
+
+		/* Return the exited value of Join when it finishes */
+		*retval = tempRet->retval;
 	}
-
-	//Dead_Collect();
 	
-	/* TO DO (if T1 alive)
-
-	if (tidFind(ZOMB_q, &Join, tid) == 1 || tidFind(BLOCKED_q, &Join, tid) == 1)
-		queue_enqueue(BLOCKED_q, Current);
-	*/
-
-
+	/* Thread wasn't found */
+	else
+		return -1;	
 	
 	return 0;
 }
